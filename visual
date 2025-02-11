@@ -1,0 +1,150 @@
+/*
+ * Script Name: Visualize WIP output in context with NWI and terrain backgrounds
+ * Description: This code selects two specific bands from an input image: one representing Uplands probability
+                and the other Wetlands probability. It then creates masks for each band to display only areas 
+                with valid (non-zero) values, ensuring clear visualization of the data for analysis.
+ * Author: Aji John
+ * License: MIT License
+ */
+
+var asset = ee.Image("projects/ee-wetseal/assets/PendOreille_WIP"),
+    image = ee.Image("projects/ee-wetseal/assets/WA_WIP_10m_Dan_R1"),
+    table = ee.FeatureCollection("projects/ee-wetseal/assets/WA_Wetlands");
+
+// 1. Clear the default UI
+//ui.root.clear();
+
+// Select bands
+var band1 = image.select(0);  // Select the first band - Uplands Probability 
+var band2 = image.select(1);  // Select the second band - Wetlands Prabability 
+
+
+// Create masks to visualize only where the bands have values
+var band1Mask = band1.updateMask(band1);  // Mask areas where band1 is not 1
+var band2Mask = band2.updateMask(band2);  // Mask areas where band2 is not 1
+
+var steppedPalette = [
+  '#ffffe5',  // Lightest
+  '#f7fcb9',
+  '#d9f0a3',
+  '#addd8e',
+  '#78c679',
+  '#41ab5d',
+  '#238443',
+  '#005a32'   // Darkest green
+];
+
+// Visualization parameters for each band
+// Uplands
+var visParamsBand1 = {
+  min: 0.14,
+  max: 1,  // Both bands have a value of 1
+  palette: ['purple']
+};
+
+//Wetlands 
+var visParamsBand2 = {
+  min: 0,
+  max: 1,  // Both bands have a value of 1
+  palette: ['red', 'cyan', 'blue', 'yellow', 'green']
+};
+
+// Center the map on the asset
+//Map.centerObject(asset, 10);
+
+// Add the first band (red) to the map
+//Map.addLayer(band1Mask, visParamsBand1, "Uplands");
+
+// Add the second band (green) to the map
+//Map.addLayer(band2Mask, visParamsBand2, "Wetlands");
+
+
+// 4. Create ui.Map.Layer objects so we can easily update visualization parameters
+var band1Layer = ui.Map.Layer(band1Mask, visParamsBand1, 'Uplands');
+var band2Layer = ui.Map.Layer(band2Mask, visParamsBand2, 'Wetlands');
+
+// 5. Add these layers to the default map
+Map.layers().set(0, band1Layer);
+Map.layers().set(1, band2Layer);
+
+// Replace with the correct path to your uploaded asset
+
+
+// Visualize the data
+Map.addLayer(table, {color: 'blue'}, 'NWI Wetlands');
+
+// 6. Center the map on the asset
+Map.centerObject(asset, 10);
+
+// 7. Create one slider for each band’s 'min' value
+var band1MinSlider = ui.Slider({
+  min: 0,
+  max: 1,
+  value: 0.14,  // Starting value (matches visParamsBand1.min)
+  step: 0.01,
+  style: {width: '200px'}
+});
+
+var band2MinSlider = ui.Slider({
+  min: 0,
+  max: 1,
+  value: 0,     // Starting value (matches visParamsBand2.min)
+  step: 0.01,
+  style: {width: '200px'}
+});
+
+// 8. Define functions to update the layers when slider values change
+function updateBand1Layer() {
+  band1Layer.setVisParams({
+    min: band1MinSlider.getValue(),
+    max: visParamsBand1.max, // Keep max fixed
+    palette: visParamsBand1.palette
+  });
+}
+
+function updateBand2Layer() {
+  band2Layer.setVisParams({
+    min: band2MinSlider.getValue(),
+    max: visParamsBand2.max, // Keep max fixed
+    palette: visParamsBand2.palette
+  });
+}
+
+// 9. Add callbacks for each slider so that changing its value updates the layer
+band1MinSlider.onChange(updateBand1Layer);
+band2MinSlider.onChange(updateBand2Layer);
+
+// 10. Build a small control panel
+var panel = ui.Panel({
+  layout: ui.Panel.Layout.flow('vertical'),
+  style: {width: '300px'}
+});
+
+// Add labels and sliders to the panel
+panel.add(ui.Label('Band 1 (Uplands) Value'));
+panel.add(band1MinSlider);
+
+panel.add(ui.Label('Band 2 (Wetlands) Value'));
+panel.add(band2MinSlider);
+
+// Display the panel in the Console/Inspector
+print(panel);
+
+//TODO 
+// 5. Add the panel to the root
+//ui.root.add(panel);
+// 6. Add the default map (optional)
+//ui.root.add(Map);
+// 11. Initial update so layers match default slider values
+updateBand1Layer();
+updateBand2Layer();
+
+//Verufy the layers
+Map.layers().forEach(function(layer, index) {
+  print('Layer ' + index + ': ' + layer.getName());
+});
+
+//Turn off the Uplands by default
+Map.layers().get(0).setShown(false);
+//Turn off the NWI by default
+Map.layers().get(2).setShown(false);
