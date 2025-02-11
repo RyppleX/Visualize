@@ -1,0 +1,48 @@
+---
+title: "Export GEE Assets"
+author: "Aji John"
+date: today
+license: "MIT License"
+format: html
+---
+
+## Purpose
+
+GEE R script to export any publicly shared assets. 
+
+```{r}
+library(rgee)
+
+# Initialize Earth Engine
+ee_Initialize()
+```
+
+## Running the export
+
+
+```{r}
+# Define an EE Image
+image <- ee$Image("projects/ee-wetseal/assets/WA_WIP_10m_Dan_R1")
+
+# Define Export Task
+task <- ee$batch$Export$image$toDrive(
+  image = image,
+  description = "WIP",
+  folder = "GEE_Exports",
+  fileNamePrefix = "10m_Dan",
+  region = image$geometry()$bounds(),
+  scale = 10,
+  maxPixels = 1e13
+)
+
+# Start Task
+task$start()
+```
+
+## Check on your export job
+
+```{r}
+# List all active tasks
+tasks <- ee$data$getTaskList()
+tasks
+```
